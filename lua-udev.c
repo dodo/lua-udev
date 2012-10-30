@@ -38,6 +38,13 @@
 typedef struct udev Udev;
 typedef struct udev_device UdevDevice;
 typedef struct udev_monitor UdevMonitor;
+typedef struct udev_list_entry UdevListEntry;
+
+const char* lowerCase(char *p) {
+    const char* r = (const char*) p;
+    for ( ; *p; ++p) *p = tolower(*p);
+    return r;
+}
 
 void push_handle(lua_State *L, void *handle, const char *mt_name) {
     lua_createtable(L, 0, 1);
@@ -53,7 +60,7 @@ void* get_handle(lua_State *L, int index) {
     if (lua_islightuserdata(L, -1)) {
         handle = lua_touserdata(L, -1);
     } else {
-        lua_pushfstring(L, "not an handle %s!", lua_typename(L, lua_type(L, -1)));
+        lua_pushfstring(L, "not an handle (%s)!", lua_typename(L, lua_type(L, -1)));
         lua_error(L);
     }
     lua_pop(L, 1);
@@ -94,6 +101,22 @@ static int __call_new(lua_State *L) {
         lua_pushvalue(L, i);
     }
     lua_pcall(L, n-1, 1, 0);
+    return 1;
+}
+
+#define lua_settablefield(l, key, value)\
+    lua_pushstring(l, key);\
+    lua_pushstring(l, value);\
+    lua_settable(l, -3);
+
+static int list_entry2table(lua_State *L, UdevListEntry *list) {
+    UdevListEntry *entry;
+    lua_newtable(L);
+    udev_list_entry_foreach(entry, list) {
+        lua_settablefield(L,
+            lowerCase((char*) udev_list_entry_get_name(entry)),
+            udev_list_entry_get_value(entry));
+    }
     return 1;
 }
 
@@ -287,6 +310,16 @@ static int meth_udev_device_getparent_with_subsystem_devtype(lua_State *L) {
         lua_tostring(L, 3)));
 }
 
+static int meth_udev_device_getproperties(lua_State *L) {
+    return list_entry2table(L, udev_device_get_properties_list_entry(
+        (UdevDevice*)get_handle(L, 1)));
+}
+
+static int meth_udev_device_getsysattrs(lua_State *L) {
+    return list_entry2table(L, udev_device_get_sysattr_list_entry(
+        (UdevDevice*)get_handle(L, 1)));
+}
+
 static int meth_udev_device_hastag(lua_State *L) {
     lua_pushinteger(L, udev_device_has_tag(
         (UdevDevice*)get_handle(L, 1),
@@ -316,6 +349,8 @@ static luaL_Reg udev_device_funcs[] = {
 };
 
 static luaL_Reg udev_device_methods[] = {
+    {"getproperties", meth_udev_device_getproperties},
+    {"getsysattrs", meth_udev_device_getsysattrs},
     {"getparent", meth_udev_device_getparent},
     {"getparent_with_subsystem_devtype", meth_udev_device_getparent_with_subsystem_devtype},
     {"getdevtype", meth_udev_device_getdevtype},
