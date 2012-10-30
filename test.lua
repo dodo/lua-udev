@@ -1,5 +1,6 @@
 print"require"
 local udev = require 'udev'
+local socket = require 'socket'
 print"start"
 
 local ud = udev() print("ud", ud, ud and ud._native)
@@ -12,7 +13,10 @@ print("start monitor", mon:start())
 
 
 while true do
-    mon:receive()
+    if #socket.select({mon}, nil, nil) > 0 then
+        local device = mon:receive()
+        print("get device", device:getsyspath())
+    end
 end
 
 mon:close()

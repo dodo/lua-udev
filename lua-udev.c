@@ -31,12 +31,12 @@
 #include "libudev.h"
 
 #define UDEV_LIB_NAME "udev"
-#define UDEV_TABLE_MT_NAME "UDEV_TABLE"
-#define UDEV_MONITOR_TABLE_MT_NAME "UDEV_MONITOR_TABLE"
 #define UDEV_MT_NAME "UDEV_HANDLE"
+#define UDEV_DEVICE_MT_NAME "UDEV_DEVICE_HANDLE"
 #define UDEV_MONITOR_MT_NAME "UDEV_MONITOR_HANDLE"
 
 typedef struct udev Udev;
+typedef struct udev_device UdevDevice;
 typedef struct udev_monitor UdevMonitor;
 
 void push_handle(lua_State *L, void *handle, const char *mt_name) {
@@ -102,17 +102,52 @@ static int new_udev(lua_State *L) {
     return new_handle(L, udev_new(), UDEV_MT_NAME);
 }
 
+static int new_udev_device(lua_State *L, UdevDevice *device) {
+    fprintf(stderr, "new udev device\n");fflush(stderr);
+    return new_handle(L, device, UDEV_DEVICE_MT_NAME);
+}
+
 static int new_udev_monitor(lua_State *L) {
     fprintf(stderr, "new udev monitor\n");fflush(stderr);
-    int n = lua_gettop(L);
     return new_handle(L, udev_monitor_new_from_netlink(
         (Udev*)get_handle(L, 1),
         lua_tostring(L, 2)), UDEV_MONITOR_MT_NAME);
 }
 
-static int meth_udev_monitor_receive(lua_State, *L) {
-    udev_monitor_receive_device((Udev*)get_handle(L, 1));
-    return 1;
+// static int new_udev_device_from_device_id(lua_State *L) {
+//     return new_udev_device(L, udev_device_new_from_device_id(
+//         (Udev*)get_handle(L, 1),
+//         lua_tostring(L, 2)));
+// }
+
+// static int new_udev_device_from_devnum(lua_State *L) {
+//     return new_udev_device(L, udev_device_new_from_devnum(
+//         (Udev*)get_handle(L, 1),
+//         lua_tostring(L, 2),
+//         lua_tointeger(L, 3)));
+// }
+
+static int new_udev_device_from_environment(lua_State *L) {
+    return new_udev_device(L, udev_device_new_from_environment(
+        (Udev*)get_handle(L, 1)));
+}
+
+static int new_udev_device_from_subsystem_sysname(lua_State *L) {
+    return new_udev_device(L, udev_device_new_from_subsystem_sysname(
+        (Udev*)get_handle(L, 1),
+        lua_tostring(L, 2),
+        lua_tostring(L, 3)));
+}
+
+static int new_udev_device_from_syspath(lua_State *L) {
+    return new_udev_device(L, udev_device_new_from_syspath(
+        (Udev*)get_handle(L, 1),
+        lua_tostring(L, 2)));
+}
+
+static int meth_udev_monitor_receive(lua_State *L) {
+    return new_udev_device(L, udev_monitor_receive_device(
+        (UdevMonitor*)get_handle(L, 1)));
 }
 
 static int meth_udev_getsyspath(lua_State *L) {
@@ -127,6 +162,11 @@ static int meth_udev_getdevpath(lua_State *L) {
 
 static int meth_udev_close(lua_State *L) {
     udev_unref((Udev*)close_handle(L, 1));
+    return 0;
+}
+
+static int meth_udev_device_close(lua_State *L) {
+    udev_device_unref((UdevDevice*)close_handle(L, 1));
     return 0;
 }
 
@@ -156,7 +196,6 @@ static int meth_udev_monitor_udate(lua_State *L) {
 }
 
 static int meth_udev_monitor_filter_subsystem_devtype(lua_State *L) {
-    int n = lua_gettop(L);
     lua_pushinteger(L, udev_monitor_filter_add_match_subsystem_devtype(
         (UdevMonitor*)get_handle(L, 1),
         lua_tostring(L, 2),
@@ -166,7 +205,6 @@ static int meth_udev_monitor_filter_subsystem_devtype(lua_State *L) {
 }
 
 static int meth_udev_monitor_filter_tag(lua_State *L) {
-    int n = lua_gettop(L);
     lua_pushinteger(L, udev_monitor_filter_add_match_tag(
         (UdevMonitor*)get_handle(L, 1),
         lua_tostring(L, 2)
@@ -174,6 +212,87 @@ static int meth_udev_monitor_filter_tag(lua_State *L) {
     return 1;
 }
 
+static int meth_udev_device_getdevtype(lua_State *L) {
+    lua_pushstring(L, udev_device_get_devtype((UdevDevice*)get_handle(L, 1)));
+    return 1;
+}
+
+
+static int meth_udev_device_getsyspath(lua_State *L) {
+    lua_pushstring(L, udev_device_get_syspath((UdevDevice*)get_handle(L, 1)));
+    return 1;
+}
+
+
+static int meth_udev_device_getsysname(lua_State *L) {
+    lua_pushstring(L, udev_device_get_sysname((UdevDevice*)get_handle(L, 1)));
+    return 1;
+}
+
+
+static int meth_udev_device_getdriver(lua_State *L) {
+    lua_pushstring(L, udev_device_get_driver((UdevDevice*)get_handle(L, 1)));
+    return 1;
+}
+
+
+static int meth_udev_device_getaction(lua_State *L) {
+    lua_pushstring(L, udev_device_get_action((UdevDevice*)get_handle(L, 1)));
+    return 1;
+}
+
+
+static int meth_udev_device_getsubsystem(lua_State *L) {
+    lua_pushstring(L, udev_device_get_subsystem((UdevDevice*)get_handle(L, 1)));
+    return 1;
+}
+
+
+static int meth_udev_device_getdevpath(lua_State *L) {
+    lua_pushstring(L, udev_device_get_devpath((UdevDevice*)get_handle(L, 1)));
+    return 1;
+}
+
+
+static int meth_udev_device_getsysnum(lua_State *L) {
+    lua_pushstring(L, udev_device_get_sysnum((UdevDevice*)get_handle(L, 1)));
+    return 1;
+}
+
+
+static int meth_udev_device_getdevnode(lua_State *L) {
+    lua_pushstring(L, udev_device_get_devnode((UdevDevice*)get_handle(L, 1)));
+    return 1;
+}
+
+
+static int meth_udev_device_getdevnum(lua_State *L) {
+    lua_pushinteger(L, udev_device_get_devnum((UdevDevice*)get_handle(L, 1)));
+    return 1;
+}
+
+static int meth_udev_device_getseqnum(lua_State *L) {
+    lua_pushnumber(L, udev_device_get_seqnum((UdevDevice*)get_handle(L, 1)));
+    return 1;
+}
+
+static int meth_udev_device_getparent(lua_State *L) {
+    return new_udev_device(L, udev_device_get_parent((UdevDevice*)get_handle(L, 1)));
+}
+
+static int meth_udev_device_getparent_with_subsystem_devtype(lua_State *L) {
+    return new_udev_device(L, udev_device_get_parent_with_subsystem_devtype(
+        (UdevDevice*)get_handle(L, 1),
+        lua_tostring(L, 2),
+        lua_tostring(L, 3)));
+}
+
+static int meth_udev_device_hastag(lua_State *L) {
+    lua_pushinteger(L, udev_device_has_tag(
+        (UdevDevice*)get_handle(L, 1),
+        lua_tostring(L, 2)));
+    return 1;
+}
 
 
 
@@ -184,6 +303,33 @@ static luaL_Reg lib_funcs[] = {
 
 static luaL_Reg udev_monitor_funcs[] = {
     {"new", new_udev_monitor},
+    {NULL, NULL}
+};
+
+static luaL_Reg udev_device_funcs[] = {
+    {"new_from_syspath", new_udev_device_from_syspath},
+//     {"new_from_devnum", new_udev_device_from_devnum},
+    {"new_from_subsystem_sysname", new_udev_device_from_subsystem_sysname},
+//     {"new_from_device_id", new_udev_device_from_device_id},
+    {"new_from_from_evironment", new_udev_device_from_environment},
+    {NULL, NULL}
+};
+
+static luaL_Reg udev_device_methods[] = {
+    {"getparent", meth_udev_device_getparent},
+    {"getparent_with_subsystem_devtype", meth_udev_device_getparent_with_subsystem_devtype},
+    {"getdevtype", meth_udev_device_getdevtype},
+    {"getdevpath", meth_udev_device_getdevpath},
+    {"getsyspath", meth_udev_device_getsyspath},
+    {"getsysname", meth_udev_device_getsysname},
+    {"getsysnum", meth_udev_device_getsysnum},
+    {"getdevnode", meth_udev_device_getdevnode},
+    {"getdriver", meth_udev_device_getdriver},
+    {"getdevnum", meth_udev_device_getdevnum},
+    {"getaction", meth_udev_device_getaction},
+    {"getseqnum", meth_udev_device_getseqnum},
+    {"hastag", meth_udev_device_hastag},
+    {"close", meth_udev_device_close},
     {NULL, NULL}
 };
 
@@ -207,19 +353,6 @@ static luaL_Reg udev_methods[] = {
 
 };
 
-// static luaL_Reg udev_mt_funcs[] = {
-//     {"read", handle_read},
-//     {"getfd", handle_getfd},
-//     {"close", handle_close},
-//     {"addwatch", handle_add_watch},
-//     {"rmwatch", handle_rm_watch},
-//     {NULL, NULL}
-// };
-
-#define register_constant(s)\
-    lua_pushinteger(L, s);\
-    lua_setfield(L, -2, #s);
-
 #define lua_pushcfunctionfield(field, method)\
     lua_pushcfunction(L, method);\
     lua_setfield(L, -2, field);
@@ -232,6 +365,15 @@ static luaL_Reg udev_methods[] = {
     luaL_new_table(methods);\
     lua_setfield(L, -2, "__index");
 
+
+static void register_udev_device(lua_State *L) {
+    luaL_newmetatable(L, UDEV_DEVICE_MT_NAME);
+    luaL_register__index(udev_device_methods);
+    lua_pushcfunctionfield("__gc", meth_udev_device_close);
+    lua_pop(L, 1);
+
+    luaL_new_table(udev_device_funcs);
+}
 
 static void register_udev_monitor(lua_State *L) {
     luaL_newmetatable(L, UDEV_MONITOR_MT_NAME);
@@ -258,6 +400,9 @@ static void register_udev(lua_State *L) {
     lua_pushcfunctionfield("__call", __call_new);
     lua_setmetatable(L, -2);
 
+    register_udev_device(L);
+    lua_setfield(L, -2, "device");
+
     register_udev_monitor(L);
     lua_setfield(L, -2, "monitor");
 }
@@ -265,30 +410,6 @@ static void register_udev(lua_State *L) {
 int luaopen_udev(lua_State *L)
 {
     register_udev(L);
-
-//     register_constant(IN_ACCESS);
-//     register_constant(IN_ATTRIB);
-//     register_constant(IN_CLOSE_WRITE);
-//     register_constant(IN_CLOSE_NOWRITE);
-//     register_constant(IN_CREATE);
-//     register_constant(IN_DELETE);
-//     register_constant(IN_DELETE_SELF);
-//     register_constant(IN_MODIFY);
-//     register_constant(IN_MOVE_SELF);
-//     register_constant(IN_MOVED_FROM);
-//     register_constant(IN_MOVED_TO);
-//     register_constant(IN_OPEN);
-//     register_constant(IN_ALL_EVENTS);
-//     register_constant(IN_MOVE);
-//     register_constant(IN_CLOSE);
-//     register_constant(IN_DONT_FOLLOW);
-//     register_constant(IN_MASK_ADD);
-//     register_constant(IN_ONESHOT);
-//     register_constant(IN_ONLYDIR);
-//     register_constant(IN_IGNORED);
-//     register_constant(IN_ISDIR);
-//     register_constant(IN_Q_OVERFLOW);
-//     register_constant(IN_UNMOUNT);
 
     return 1;
 }
