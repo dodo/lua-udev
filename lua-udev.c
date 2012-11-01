@@ -350,7 +350,7 @@ static int meth_udev_device_getproperties(lua_State *L) {
 }
 
 static int meth_udev_device_getsysattrs(lua_State *L) {
-    return list_entry2table(L, udev_device_get_sysattr_list_entry(
+    return list_entry2itable(L, udev_device_get_sysattr_list_entry(
         (UdevDevice*)get_handle(L, 1)));
 }
 
