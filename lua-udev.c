@@ -40,9 +40,13 @@ typedef struct udev_device UdevDevice;
 typedef struct udev_monitor UdevMonitor;
 typedef struct udev_list_entry UdevListEntry;
 
-const char* lowerCase(char *p) {
-    const char* r = (const char*) p;
-    for ( ; *p; ++p) *p = tolower(*p);
+const char* lowerCase(lua_State *L, const char *p) {
+    lua_getglobal(L, "string");
+    lua_getfield(L, -1, "lower");
+    lua_pushstring(L, p);
+    lua_pcall(L, 1, 1, 0);
+    const char* r = lua_tostring(L, -1);
+    lua_pop(L, 2); // r + string
     return r;
 }
 
@@ -104,18 +108,13 @@ static int __call_new(lua_State *L) {
     return 1;
 }
 
-#define lua_settablefield(l, key, value)\
-    lua_pushstring(l, key);\
-    lua_pushstring(l, value);\
-    lua_settable(l, -3);
-
 static int list_entry2table(lua_State *L, UdevListEntry *list) {
     UdevListEntry *entry;
     lua_newtable(L);
     udev_list_entry_foreach(entry, list) {
-        lua_settablefield(L,
-            lowerCase((char*) udev_list_entry_get_name(entry)),
-            udev_list_entry_get_value(entry));
+        lua_pushstring(L, lowerCase(L, udev_list_entry_get_name(entry)));
+        lua_pushstring(L, udev_list_entry_get_value(entry));
+        lua_settable(L, -3);
     }
     return 1;
 }
