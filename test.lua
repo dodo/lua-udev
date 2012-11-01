@@ -4,12 +4,19 @@ local socket = require 'socket'
 print"start"
 
 local ud = udev() print("ud", ud, ud and ud._native)
+
+local enum = udev.enumerate(ud)
+assert(enum:match_subsystem("power_supply"))
+enum:match_property("power_supply_name", "AC")
+print"scan subsystems"
+assert(enum:scan_subsystems()) for k,v in pairs(enum:getlist()) do print(k,v) end
+print"scan devices"
+assert(enum:scan_devices())    for k,v in pairs(enum:getlist()) do print(k,v) end
+enum:close()
+
 local mon = udev.monitor(ud, "udev") print("monitor", mon, mon and mon._native, mon:getfd())
 
-for _, subsystem in ipairs({"power_supply","drm","net"}) do
-    print("add subsystem("..subsystem..") devtype",
-          mon:filter_subsystem_devtype(subsystem))
-end
+    print("add subsystem devtype", mon:filter_subsystem_devtype())
 
 print("start monitor", mon:start())
 
