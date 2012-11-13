@@ -143,6 +143,19 @@ static int list_entry2itable(lua_State *L, UdevListEntry *list) {
     return 1;
 }
 
+static int list_sysattr2table(lua_State *L, UdevDevice *device) {
+    int i = 1;
+    UdevListEntry *entry;
+    lua_newtable(L);
+    udev_list_entry_foreach(entry, udev_device_get_sysattr_list_entry(device)) {
+        const char* name = udev_list_entry_get_name(entry);
+        lua_pushstring(L, name);
+        lua_pushstring(L, udev_device_get_sysattr_value(device, name));
+        lua_settable(L, -3);
+    }
+    return 1;
+}
+
 static int new_udev(lua_State *L) {
     fprintf(stderr, "new udev\n");fflush(stderr);
     return new_handle(L, udev_new(), UDEV_MT_NAME);
@@ -350,8 +363,7 @@ static int meth_udev_device_getproperties(lua_State *L) {
 }
 
 static int meth_udev_device_getsysattrs(lua_State *L) {
-    return list_entry2itable(L, udev_device_get_sysattr_list_entry(
-        (UdevDevice*)get_handle(L, 1)));
+    return list_sysattr2table(L, (UdevDevice*)get_handle(L, 1));
 }
 
 static int meth_udev_device_hastag(lua_State *L) {
