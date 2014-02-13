@@ -237,7 +237,7 @@ static int meth_udev_getdevpath(lua_State *L) {
 	devPath = getenv("UDEV_ROOT");
 	
 	if (devPath == NULL) {
-			devPath = DEFAULT_DEV_PATH;
+		devPath = DEFAULT_DEV_PATH;
 	}
 	
     lua_pushstring(L, devPath);
