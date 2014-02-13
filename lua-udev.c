@@ -36,8 +36,8 @@
 #define UDEV_MONITOR_MT_NAME "UDEV_MONITOR_HANDLE"
 #define UDEV_ENUMERATE_MT_NAME "UDEV_ENUMERATE_HANDLE"
 
-#define SYS_PATH "/sys"
-#define DEV_PATH "/dev"
+#define DEFAULT_SYS_PATH "/sys"
+#define DEFAULT_DEV_PATH "/dev"
 
 typedef struct udev Udev;
 typedef struct udev_device UdevDevice;
@@ -219,12 +219,28 @@ static int meth_udev_monitor_receive(lua_State *L) {
 }
 
 static int meth_udev_getsyspath(lua_State *L) {
-    lua_pushstring(L, SYS_PATH);
+	char* sysPath;
+	
+	sysPath = getenv("SYSFS_PATH");
+	
+	if (sysPath == NULL) {
+		sysPath = DEFAULT_SYS_PATH;
+	}
+	
+    lua_pushstring(L, sysPath);
     return 1;
 }
 
 static int meth_udev_getdevpath(lua_State *L) {
-    lua_pushstring(L, DEV_PATH);
+	char* devPath;
+	
+	devPath = getenv("UDEV_ROOT");
+	
+	if (devPath == NULL) {
+			devPath = DEFAULT_DEV_PATH;
+	}
+	
+    lua_pushstring(L, devPath);
     return 1;
 }
 
