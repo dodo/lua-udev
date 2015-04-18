@@ -1,7 +1,7 @@
 package = "udev"
 version = "0.1-0"
 source = {
-        url = 'https://github.com/downloads/dodo/lua-udev/lua-udev-0.1.tar.gz'
+        url = 'https://github.com/dodo/lua-udev/archive/0.1.tar.gz'
 }
 description = {
         summary  = "udev bindings for Lua",
