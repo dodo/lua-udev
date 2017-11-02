@@ -30,7 +30,6 @@
 
 #include "libudev.h"
 
-#define UDEV_LIB_NAME "udev"
 #define UDEV_MT_NAME "UDEV_HANDLE"
 #define UDEV_DEVICE_MT_NAME "UDEV_DEVICE_HANDLE"
 #define UDEV_MONITOR_MT_NAME "UDEV_MONITOR_HANDLE"
@@ -585,18 +584,19 @@ static luaL_Reg udev_methods[] = {
 
 };
 
+#if LUA_VERSION_NUM < 503
+#define luaL_newlib(L, methods)\
+    lua_createtable(L, 0, sizeof(methods) / sizeof(luaL_Reg) - 1);\
+    luaL_register(L, NULL, methods);
+#endif
+
 #define lua_pushcfunctionfield(field, method)\
     lua_pushcfunction(L, method);\
     lua_setfield(L, -2, field);
 
-#define luaL_new_table(methods)\
-    lua_createtable(L, 0, sizeof(methods) / sizeof(luaL_Reg) - 1);\
-    luaL_register(L, NULL, methods);
-
 #define luaL_register__index(methods)\
-    luaL_new_table(methods);\
+    luaL_newlib(L, methods);\
     lua_setfield(L, -2, "__index");
-
 
 static void register_udev_device(lua_State *L) {
     luaL_newmetatable(L, UDEV_DEVICE_MT_NAME);
@@ -604,7 +604,7 @@ static void register_udev_device(lua_State *L) {
     lua_pushcfunctionfield("__gc", meth_udev_device_close);
     lua_pop(L, 1);
 
-    luaL_new_table(udev_device_funcs);
+    luaL_newlib(L, udev_device_funcs);
 }
 
 static void register_udev_monitor(lua_State *L) {
@@ -613,7 +613,7 @@ static void register_udev_monitor(lua_State *L) {
     lua_pushcfunctionfield("__gc", meth_udev_monitor_close);
     lua_pop(L, 1);
 
-    luaL_new_table(udev_monitor_funcs);
+    luaL_newlib(L, udev_monitor_funcs);
     lua_createtable(L, 0, 1);
     lua_pushcfunctionfield("__call", __call_new);
     lua_setmetatable(L, -2);
@@ -625,7 +625,7 @@ static void register_udev_enumerate(lua_State *L) {
     lua_pushcfunctionfield("__gc", meth_udev_enumerate_close);
     lua_pop(L, 1);
 
-    luaL_new_table(udev_enumerate_funcs);
+    luaL_newlib(L, udev_enumerate_funcs);
     lua_createtable(L, 0, 1);
     lua_pushcfunctionfield("__call", __call_new);
     lua_setmetatable(L, -2);
@@ -637,10 +637,9 @@ static void register_udev(lua_State *L) {
     lua_pushcfunctionfield("__gc", meth_udev_close);
     lua_pop(L, 1);
 
-    luaL_register(L, UDEV_LIB_NAME, lib_funcs);
-    lua_getglobal(L, UDEV_LIB_NAME);
+    luaL_newlib(L,lib_funcs);
 
-    lua_getmetatable(L, -1);
+    lua_createtable(L, 0, 1);
     lua_pushcfunctionfield("__call", __call_new);
     lua_setmetatable(L, -2);
 
